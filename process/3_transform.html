@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Sicheng Wang">
+
+<title>Transform</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="3_transform_files/libs/clipboard/clipboard.min.js"></script>
+<script src="3_transform_files/libs/quarto-html/quarto.js"></script>
+<script src="3_transform_files/libs/quarto-html/popper.min.js"></script>
+<script src="3_transform_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="3_transform_files/libs/quarto-html/anchor.min.js"></script>
+<link href="3_transform_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="3_transform_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="3_transform_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="3_transform_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="3_transform_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Transform</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Sicheng Wang </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="overview" class="level2">
+<h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>The goal of this script is to transform the curated State of the Union data into a format that is suitable for analysis. For reference, the research question is:</p>
+<blockquote class="blockquote">
+<p>Are there any notable differences in the language used by presidents from pre- and post-9/11? Starting after WWII and up to the present?</p>
+</blockquote>
+<p>This is exploratory research and the analysis will be conducted using a variety of methods including:</p>
+<ul>
+<li>Sentiment analysis <em>(demo here)</em></li>
+<li>Topic modeling</li>
+<li>Word co-occurrence</li>
+</ul>
+<p>The aim is to gain possible insights into changes in presidential rhetoric before the historical event of 9/11 and after.</p>
+<p>To facilitate the transformation process, I will load various R packages.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load packages</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr)        <span class="co"># reading/ writing datasets</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)        <span class="co"># for `kable()` function</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)        <span class="co"># basic data manipulation</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)    <span class="co"># date manipulation</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidytext)     <span class="co"># text manipulation</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(textdata)     <span class="co"># sentiment lexicons</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(qtalrkit)     <span class="co"># data dictionary creation</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)      <span class="co"># plotting</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fs)           <span class="co"># file system operations</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="description" class="level2">
+<h2 class="anchored" data-anchor-id="description">Description</h2>
+<section id="data" class="level3">
+<h3 class="anchored" data-anchor-id="data">Data</h3>
+<!--
+
+- Adding
+the name and/ or source of the data
+the nature of the data
+the observations and variables in the data
+the unit of observation in the curated dataset
+
+-->
+<ol class="example" type="1">
+<li><p>The State of the Union Addresses are accessible through the <code>quanteda.corpora</code> package using the <code>data_corpus_sotu()</code> function.</p></li>
+<li><p>The data itself contains character and corpus objects, which encompass a collection of texts along with their associated metadata.</p></li>
+<li><p>This dataset contains 240 observations and 7 variables. The variables include <code>text</code> (the text of the State of the Union address), <code>FirstName</code> (the first name of the President), <code>President</code> (the last name of the President), <code>Date</code> (the date of the address), <code>delivery</code> (the delivery method of the address), <code>type</code> (the type of address), and <code>party</code> (the political party of the President).</p></li>
+<li><p>The unit of observation in the curated dataset is the <code>text</code>.</p></li>
+</ol>
+<p>The data is a collection of State of the Union addresses from 1945 to present. The data dictionary for this dataset is seen in <a href="#tbl-sotu-curated-dd">Table&nbsp;1</a>.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="tbl-sotu-curated-dd" class="anchored">
+<table class="table table-sm table-striped small">
+<caption>Table&nbsp;1: Data dictionary for the State of the Union dataset</caption>
+<colgroup>
+<col style="width: 13%">
+<col style="width: 18%">
+<col style="width: 14%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">variable</th>
+<th style="text-align: left;">name</th>
+<th style="text-align: left;">variable_type</th>
+<th style="text-align: left;">description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">president</td>
+<td style="text-align: left;">President</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">The president’s last name</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">first_name</td>
+<td style="text-align: left;">First Name</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">The president’s first name</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">party</td>
+<td style="text-align: left;">Party</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">The president’s party affiliation</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">date</td>
+<td style="text-align: left;">Date</td>
+<td style="text-align: left;">date</td>
+<td style="text-align: left;">The date the address was given</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">address_type</td>
+<td style="text-align: left;">Address type</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">The type of address (SOTU, other)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">delivery</td>
+<td style="text-align: left;">Delivery modality</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">The modality of the address (spoken, written)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">text</td>
+<td style="text-align: left;">Text</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">The text of the address (audience reactions removed)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>The data dictionary shows that we have a number of variables that we can use for analysis. The <code>text</code> variable will be the most important for the analysis. It contains the actual text of the State of the Union addresses. The <code>date</code> variable will be useful for filtering the data for only addresses after WWII (1945-). The other variables may be useful for additional follow up analysis.</p>
+<p>As it stands, the curated dataset has the <code>text</code> as the unit of observation. This corresponds to the individual addresses.</p>
+</section>
+</section>
+<section id="structure" class="level2">
+<h2 class="anchored" data-anchor-id="structure">Structure</h2>
+<section id="data-1" class="level3">
+<h3 class="anchored" data-anchor-id="data-1">Data</h3>
+<!--
+
+- Adding
+the relevant unit of observation and variables
+the research question or hypothesis the dataset will be able to address
+the idealized format for the transformed dataset in a tabular format
+
+-->
+<ul>
+<li><p>The main question is about discerning any noteworthy disparities in the language used by presidents pre- and post-9/11. This analysis includes utilizing sentiment analysis, topic modeling, and word co-occurrence as metrics to track language features. For sentiment analysis, the required variables in the dataset include <code>address_id</code>, <code>address_year</code>, <code>period</code>, <code>word</code>, and <code>sentiment</code>, with <code>sentiment</code> serving as the unit of observation. In the topic modeling, the necessary variables are <code>address_id</code>, <code>address_year</code>, <code>period</code>, <code>type</code>, <code>frequency</code>, and <code>tf_idf</code>, where <code>TF-IDF</code> acts as the unit of observation. For word co-occurrence analysis, the pertinent variables consist of <code>address_id</code>, <code>address_year</code>, <code>period</code>, <code>word_ref</code>, <code>word_co</code>, and <code>co_occurrence</code>, with <code>co-occurrence</code> serving as the unit of observation.</p></li>
+<li><p>In the sentiment analysis, the focus is on examining the sentiment expressed by government officials or presidents. For topic modeling, the research question is about identifying words that frequently appear in the speeches of government officials or presidents. In the word co-occurrence analysis, the research question can be uncovering which words tend to appear together simultaneously.</p></li>
+<li><p>Idealized format for the sentiment analysis.</p></li>
+</ul>
+<div class="cell" data-label="sentiment-idealized-dataset">
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 0
+Columns: 5
+$ address_id   &lt;int&gt; 
+$ address_year &lt;int&gt; 
+$ period       &lt;chr&gt; 
+$ word         &lt;chr&gt; 
+$ sentiment    &lt;chr&gt; </code></pre>
+</div>
+</div>
+<p>Idealized format for the topic modeling.</p>
+<div class="cell" data-label="topic-modeling-idealized-dataset">
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 0
+Columns: 6
+$ address_id   &lt;int&gt; 
+$ address_year &lt;int&gt; 
+$ period       &lt;chr&gt; 
+$ type         &lt;chr&gt; 
+$ frequency    &lt;int&gt; 
+$ tf_idf       &lt;dbl&gt; </code></pre>
+</div>
+</div>
+<p>Idealized format for the word co-occurrence analysis.</p>
+<div class="cell" data-label="co-occurrence-idealized-dataset">
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 0
+Columns: 6
+$ address_id    &lt;int&gt; 
+$ address_year  &lt;int&gt; 
+$ period        &lt;chr&gt; 
+$ word_ref      &lt;chr&gt; 
+$ word_co       &lt;chr&gt; 
+$ co_occurrence &lt;int&gt; </code></pre>
+</div>
+</div>
+<p>The first step in the transformation process is to load the data and inspect the structure of the dataset.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load the data</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../data/derived/sotu_curated.csv"</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(sotu_tbl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 241
+Columns: 7
+$ president    &lt;chr&gt; "Washington", "Washington", "Washington", "Washington", "…
+$ first_name   &lt;chr&gt; "George", "George", "George", "George", "George", "George…
+$ party        &lt;chr&gt; "Independent", "Independent", "Independent", "Independent…
+$ date         &lt;date&gt; 1790-01-08, 1790-12-08, 1791-10-25, 1792-11-06, 1793-12-…
+$ address_type &lt;chr&gt; "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "…
+$ delivery     &lt;chr&gt; "spoken", "spoken", "spoken", "spoken", "spoken", "spoken…
+$ text         &lt;chr&gt; "Fellow-Citizens of the Senate and House of Representativ…</code></pre>
+</div>
+</div>
+<p>We now see the variables (as described in the data dictionary) as part of the <code>sotu_tbl</code> data frame. There are 241 rows and 7 columns.</p>
+<p>The next step is to transform the data into a format that is suitable for analysis. Since there are a number of different analyses that will be conducted, I will create a number of different datasets that are suitable for each analysis.</p>
+<p><strong>Sentiment analysis</strong></p>
+<p>The first analysis will be sentiment analysis. This will involve using the <code>bing</code> lexicon to calculate the sentiment of each word in the <code>text</code> variable. The <code>bing</code> lexicon is a simple lexicon that classifies words as either positive or negative. The <code>tidytext</code> package will be used to tokenize the words in the <code>text</code> variable. Then the <code>bing</code> lexicon will be joined to the tokenized words to calculate the sentiment of each word.</p>
+<p>An idealized structure for the sentiment analysis dataset is seen in <a href="#tbl-sentiment-ideal">Table&nbsp;2</a>.</p>
+<div id="tbl-sentiment-ideal" class="anchored">
+<table class="table">
+<caption>Table&nbsp;2: Idealized structure for the sentiment analysis dataset</caption>
+<colgroup>
+<col style="width: 15%">
+<col style="width: 15%">
+<col style="width: 15%">
+<col style="width: 55%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>variable</th>
+<th>name</th>
+<th>type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>address_id</td>
+<td>Address ID</td>
+<td>integer</td>
+<td>Unique identifier for each address</td>
+</tr>
+<tr class="even">
+<td>address_year</td>
+<td>Address Year</td>
+<td>integer</td>
+<td>Year of the address (e.g.&nbsp;1945, 1978, etc.)</td>
+</tr>
+<tr class="odd">
+<td>period</td>
+<td>Period</td>
+<td>character</td>
+<td>Pre- or post-9/11</td>
+</tr>
+<tr class="even">
+<td>word</td>
+<td>Word tokens</td>
+<td>character</td>
+<td>Individual words from the <code>text</code> variable</td>
+</tr>
+<tr class="odd">
+<td>sentiment</td>
+<td>Sentiment class</td>
+<td>character</td>
+<td>Sentiment of the word (positive or negative)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Topic modeling</strong></p>
+<p>For topic modeling, the <code>text</code> variable will be tokenized into words. In the analysis, we will likely want the frequency of words and the TF-IDF of words (to weight the importance of words). It will be important to have the <code>address_id</code> and <code>address_year</code> variables to keep track of the address and year of the address as we will want to split the dataset by <code>period</code> before the topic modeling analysis.</p>
+<p>An idealized structure for the topic modeling dataset is seen in <a href="#tbl-topic-ideal">Table&nbsp;3</a>.</p>
+<div id="tbl-topic-ideal" class="anchored">
+<table class="table">
+<caption>Table&nbsp;3: Idealized structure for the topic modeling dataset</caption>
+<colgroup>
+<col style="width: 15%">
+<col style="width: 15%">
+<col style="width: 15%">
+<col style="width: 55%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>variable</th>
+<th>name</th>
+<th>type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>address_id</td>
+<td>Address ID</td>
+<td>integer</td>
+<td>Unique identifier for each address</td>
+</tr>
+<tr class="even">
+<td>address_year</td>
+<td>Address Year</td>
+<td>integer</td>
+<td>Year of the address (e.g.&nbsp;1945, 1978, etc.)</td>
+</tr>
+<tr class="odd">
+<td>period</td>
+<td>Period</td>
+<td>character</td>
+<td>Pre- or post-9/11</td>
+</tr>
+<tr class="even">
+<td>type</td>
+<td>Word type</td>
+<td>character</td>
+<td>Individual words from the <code>text</code> variable</td>
+</tr>
+<tr class="odd">
+<td>frequency</td>
+<td>Frequency</td>
+<td>integer</td>
+<td>Frequency of the word type in the <code>text</code> variable</td>
+</tr>
+<tr class="even">
+<td>tf_idf</td>
+<td>TF-IDF</td>
+<td>numeric</td>
+<td>TF-IDF of the word type in the <code>text</code> variable</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Word Co-occurrence</strong></p>
+<p>For word co-occurrence, we will want to calculate the co-occurrence of words in the <code>text</code> variable. This will involve tokenizing the <code>text</code> variable into words and then calculating the co-occurrence of words. The <code>address_id</code> and <code>address_year</code> variables will be important to keep track of the address and year of the address as we will want to split the dataset by <code>period</code> before the word co-occurrence analysis.</p>
+<p>An idealized structure for the word co-occurrence dataset is seen in <a href="#tbl-co-occurrence-ideal">Table&nbsp;4</a>.</p>
+<div id="tbl-co-occurrence-ideal" class="anchored">
+<table class="table">
+<caption>Table&nbsp;4: Idealized structure for the word co-occurrence dataset</caption>
+<colgroup>
+<col style="width: 15%">
+<col style="width: 15%">
+<col style="width: 15%">
+<col style="width: 55%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>variable</th>
+<th>name</th>
+<th>type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>address_id</td>
+<td>Address ID</td>
+<td>integer</td>
+<td>Unique identifier for each address</td>
+</tr>
+<tr class="even">
+<td>address_year</td>
+<td>Address Year</td>
+<td>integer</td>
+<td>Year of the address (e.g.&nbsp;1945, 1978, etc.)</td>
+</tr>
+<tr class="odd">
+<td>period</td>
+<td>Period</td>
+<td>character</td>
+<td>Pre- or post-9/11</td>
+</tr>
+<tr class="even">
+<td>word_ref</td>
+<td>Reference word</td>
+<td>character</td>
+<td>Reference word from the <code>text</code> variable</td>
+</tr>
+<tr class="odd">
+<td>word_co</td>
+<td>Co-occurring word</td>
+<td>character</td>
+<td>Co-occurring word from the <code>text</code> variable</td>
+</tr>
+<tr class="even">
+<td>co_occurrence</td>
+<td>Co-occurrence</td>
+<td>integer</td>
+<td>Co-occurrence of the reference and co-occurring word (as PMI score)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="transform" class="level2">
+<h2 class="anchored" data-anchor-id="transform">Transform</h2>
+<p>Let’s aim at transforming the data into the idealized structures for each analysis. We will start with the sentiment analysis dataset.</p>
+<section id="sentiment-analysis" class="level3">
+<h3 class="anchored" data-anchor-id="sentiment-analysis">Sentiment Analysis</h3>
+<!--
+| variable | name | type | description |
+|----------|------|-------------|--|
+| address_id | Address ID | integer | Unique identifier for each address |
+| address_year | Address Year | integer | Year of the address (e.g. 1945, 1978, etc.) |
+| period | Period | character | Pre- or post-9/11 |
+| word | Word tokens | character | Individual words from the `text` variable |
+| sentiment | Sentiment class | character | Sentiment of the word (positive or negative) |
+-->
+<p>Let’s start by setting up our metadata. I will do this so that we can easily keep track of the variables in the dataset once we move to tokenize the text.</p>
+<p>The metadata columns to create are:</p>
+<ul>
+<li><code>address_id</code>: Unique identifier for each address</li>
+<li><code>address_year</code>: Year of the address</li>
+<li><code>period</code>: Pre- or post-9/11</li>
+</ul>
+<p>First, I will extract the year from the <code>date</code> variable and add it to a column <code>address_year</code>. The <code>date</code> variable has been read in (with <code>readr</code>) as a ‘date’ class. This means that it is possible to extract the year from the date using the <code>year()</code> function from the <code>lubridate</code> package.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add the address_year</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="ot">&lt;-</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">address_year =</span> <span class="fu">year</span>(date))</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(sotu_tbl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 241
+Columns: 8
+$ president    &lt;chr&gt; "Washington", "Washington", "Washington", "Washington", "…
+$ first_name   &lt;chr&gt; "George", "George", "George", "George", "George", "George…
+$ party        &lt;chr&gt; "Independent", "Independent", "Independent", "Independent…
+$ date         &lt;date&gt; 1790-01-08, 1790-12-08, 1791-10-25, 1792-11-06, 1793-12-…
+$ address_type &lt;chr&gt; "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "…
+$ delivery     &lt;chr&gt; "spoken", "spoken", "spoken", "spoken", "spoken", "spoken…
+$ text         &lt;chr&gt; "Fellow-Citizens of the Senate and House of Representativ…
+$ address_year &lt;dbl&gt; 1790, 1790, 1791, 1792, 1793, 1794, 1795, 1796, 1797, 179…</code></pre>
+</div>
+</div>
+<p>The next step is to work with the <code>year</code> column. We are going to first filter the rows such that we only have addresses after WWII (1945-).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter the data for addresses after WWII</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="ot">&lt;-</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(address_year <span class="sc">&gt;=</span> <span class="dv">1945</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(sotu_tbl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 86
+Columns: 8
+$ president    &lt;chr&gt; "Roosevelt", "Roosevelt", "Truman", "Truman", "Truman", "…
+$ first_name   &lt;chr&gt; "Franklin D.", "Franklin D.", "Harry S.", "Harry S.", "Ha…
+$ party        &lt;chr&gt; "Democratic", "Democratic", "Democratic", "Democratic", "…
+$ date         &lt;date&gt; 1945-01-06, 1945-01-06, 1946-01-21, 1947-01-06, 1948-01-…
+$ address_type &lt;chr&gt; "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "…
+$ delivery     &lt;chr&gt; "written", "spoken", "written", "spoken", "spoken", "spok…
+$ text         &lt;chr&gt; "To the Congress:\n\nIn considering the State of the Unio…
+$ address_year &lt;dbl&gt; 1945, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 195…</code></pre>
+</div>
+</div>
+<p>We can now see we’ve dropped from 241 addresses to 86.</p>
+<p>Then we will create the <code>period</code> column using the <code>year</code> column to add <code>pre_9_11</code> or <code>post_9_11</code> to the <code>period</code> column with the <code>case_when()</code> function. The cutoff year for pre-9/11 is 2001.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add the period</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="ot">&lt;-</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">period =</span> <span class="fu">case_when</span>(</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    address_year <span class="sc">&lt;</span> <span class="dv">2001</span> <span class="sc">~</span> <span class="st">"pre"</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    address_year <span class="sc">&gt;=</span> <span class="dv">2001</span> <span class="sc">~</span> <span class="st">"post"</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(sotu_tbl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 86
+Columns: 9
+$ president    &lt;chr&gt; "Roosevelt", "Roosevelt", "Truman", "Truman", "Truman", "…
+$ first_name   &lt;chr&gt; "Franklin D.", "Franklin D.", "Harry S.", "Harry S.", "Ha…
+$ party        &lt;chr&gt; "Democratic", "Democratic", "Democratic", "Democratic", "…
+$ date         &lt;date&gt; 1945-01-06, 1945-01-06, 1946-01-21, 1947-01-06, 1948-01-…
+$ address_type &lt;chr&gt; "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "…
+$ delivery     &lt;chr&gt; "written", "spoken", "written", "spoken", "spoken", "spok…
+$ text         &lt;chr&gt; "To the Congress:\n\nIn considering the State of the Unio…
+$ address_year &lt;dbl&gt; 1945, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 195…
+$ period       &lt;chr&gt; "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "…</code></pre>
+</div>
+</div>
+<p>Finally, we will add the <code>address_id</code>, all we need to do is to create a sequence of numbers from 1 to the number of rows in the dataset. A shortcut for this operation is the <code>row_numbers()</code> function from the <code>dplyr</code> package.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add the address_id</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="ot">&lt;-</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">address_id =</span> <span class="fu">row_number</span>())</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(sotu_tbl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 86
+Columns: 10
+$ president    &lt;chr&gt; "Roosevelt", "Roosevelt", "Truman", "Truman", "Truman", "…
+$ first_name   &lt;chr&gt; "Franklin D.", "Franklin D.", "Harry S.", "Harry S.", "Ha…
+$ party        &lt;chr&gt; "Democratic", "Democratic", "Democratic", "Democratic", "…
+$ date         &lt;date&gt; 1945-01-06, 1945-01-06, 1946-01-21, 1947-01-06, 1948-01-…
+$ address_type &lt;chr&gt; "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "SOTU", "…
+$ delivery     &lt;chr&gt; "written", "spoken", "written", "spoken", "spoken", "spok…
+$ text         &lt;chr&gt; "To the Congress:\n\nIn considering the State of the Unio…
+$ address_year &lt;dbl&gt; 1945, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 195…
+$ period       &lt;chr&gt; "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "…
+$ address_id   &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17…</code></pre>
+</div>
+</div>
+<p>Now, we are in a position to tokenize the <code>text</code> variable. But before we do that, we need to decided if we are keeping the other variables or dropping them. Some of the variables may be useful for additional analysis, either to follow up on potential patterns or to use to filter the dataset even more.</p>
+<p>For example, say see a trend in more negative sentiment in the post-9/11 addresses. We may want to investigate if this is related to the president’s party or even the president. In this case, we would want to keep the <code>president</code> and <code>party</code> variables.</p>
+<p>On the other hand, a variable like <code>delivery</code> may turn out to be a variable we don’t want to have add additional complexity to the analysis. In this case, we might want to decide which value (level) of delivery to keep. Let’s take a quick look at a frequency table of the <code>delivery</code> variable.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Frequency table of the `delivery` variable</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(delivery) <span class="sc">|&gt;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="tbl-delivery-freq" class="anchored">
+<table class="table table-sm table-striped small">
+<caption>Table&nbsp;5: Frequency table of the <code>delivery</code> variable</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">delivery</th>
+<th style="text-align: right;">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">spoken</td>
+<td style="text-align: right;">74</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">written</td>
+<td style="text-align: right;">12</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>In <a href="#tbl-delivery-freq">Table&nbsp;5</a>, we see that the great majority of the addresses in the dataset are ‘spoken’. Whatever potential differences from the ‘written’ modality may not be worth the additional complexity in the analysis.</p>
+<p>With this in mind, we will filter the dataset to only keep <code>delivery == 'spoken'</code> and then drop:</p>
+<ul>
+<li><code>delivery</code></li>
+<li><code>date</code></li>
+<li><code>address_type</code></li>
+<li><code>first_name</code></li>
+</ul>
+<p>At the same time, I will arrange the columns in a way that makes sense for the sentiment analysis dataset.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter the data for `delivery == 'spoken'`</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="ot">&lt;-</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(delivery <span class="sc">==</span> <span class="st">"spoken"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(address_id, address_year, president, party, period, text)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(sotu_tbl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 74
+Columns: 6
+$ address_id   &lt;int&gt; 2, 4, 5, 6, 7, 8, 9, 11, 12, 13, 15, 16, 17, 18, 19, 21, …
+$ address_year &lt;dbl&gt; 1945, 1947, 1948, 1949, 1950, 1951, 1952, 1953, 1954, 195…
+$ president    &lt;chr&gt; "Roosevelt", "Truman", "Truman", "Truman", "Truman", "Tru…
+$ party        &lt;chr&gt; "Democratic", "Democratic", "Democratic", "Democratic", "…
+$ period       &lt;chr&gt; "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "…
+$ text         &lt;chr&gt; "Today, in pursuance of my Constitutional duty, I sent to…</code></pre>
+</div>
+</div>
+<p>We now have a dataset with 74 addresses and then necessary metadata columns to give ample context to the sentiment analysis. The next step is to tokenize the <code>text</code> variable.</p>
+<p>Before we do that, let’s do some quick diagnostics on the dataset to make sure we understand the distribution of some of the variables. For example, we may want to know the distribution of addresses by <code>period</code>. We might also want to know if there are more addresses by a party in one period than another. Let’s plot both of these distributions.</p>
+<div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Distribution of addresses by period</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(period) <span class="sc">|&gt;</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> period, <span class="at">y =</span> n, <span class="at">fill =</span> period)) <span class="sc">+</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>() <span class="sc">+</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Distribution of addresses by period"</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Distribution of party representation by period</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(period, party) <span class="sc">|&gt;</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> period, <span class="at">y =</span> n, <span class="at">fill =</span> party)) <span class="sc">+</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">position =</span> <span class="st">"dodge"</span>) <span class="sc">+</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Distribution of party representation by period"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="fig-distribution-period-party" class="cell quarto-layout-panel">
+<figure class="figure">
+<div class="quarto-layout-row quarto-layout-valign-top">
+<div class="cell-output-display quarto-layout-cell quarto-layout-cell-subref" style="flex-basis: 50.0%;justify-content: center;">
+<div id="fig-distribution-period-party-1" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="3_transform_files/figure-html/fig-distribution-period-party-1.png" class="img-fluid figure-img" data-ref-parent="fig-distribution-period-party" width="672"></p>
+<figcaption class="figure-caption">(a) Distribution of addresses by period</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output-display quarto-layout-cell quarto-layout-cell-subref" style="flex-basis: 50.0%;justify-content: center;">
+<div id="fig-distribution-period-party-2" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="3_transform_files/figure-html/fig-distribution-period-party-2.png" class="img-fluid figure-img" data-ref-parent="fig-distribution-period-party" width="672"></p>
+<figcaption class="figure-caption">(b) Distribution of party representation by period</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p></p><figcaption class="figure-caption">Figure&nbsp;1: Distribution of address count and party representation by period.</figcaption><p></p>
+</figure>
+</div>
+</div>
+<!--
+Note:
+- The ordering of 'post' and 'pre' is alphabetical. If we want to change the order, we can make the `period` variable a factor with levels `c("pre", "post")`. At this point, we will keep the order as is as we will save this to a CSV file, and the order will not be preserved in the CSV file.
+- You may also want to change the default colors in the plots. In the US the color red and blue are often associated with the Republican and Democratic parties respectively. You can change the colors using the `scale_fill_manual()` function in `ggplot2`.
+-->
+<p>We can see from the plots in <a href="#fig-distribution-period-party">Figure&nbsp;1</a> that there are clearly more addresses pre-9/11 than post-9/11 (this make obvious sense as the dataset is from 1945 to present). We can see that the party distribution is quite similar, with a small majority of addresses from Republican presidents post-9/11.</p>
+<p>Now, let’s tokenize the <code>text</code> variable. We will use the <code>unnest_tokens()</code> function from the <code>tidytext</code> package to tokenize the <code>text</code> variable into words adding a new column <code>token</code>. I will also add a <code>token_id</code> column to keep track of the order of the tokens in the <code>text</code> variable. To do this second operation, I will group the dataset by <code>address_id</code> and then use the <code>row_number()</code> function to create the <code>token_id</code> column.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Tokenize the `text` variable</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="ot">&lt;-</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest_tokens</span>(token, text) <span class="sc">|&gt;</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(address_id) <span class="sc">|&gt;</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">token_id =</span> <span class="fu">row_number</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(sotu_tbl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 395,672
+Columns: 7
+$ address_id   &lt;int&gt; 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, …
+$ address_year &lt;dbl&gt; 1945, 1945, 1945, 1945, 1945, 1945, 1945, 1945, 1945, 194…
+$ president    &lt;chr&gt; "Roosevelt", "Roosevelt", "Roosevelt", "Roosevelt", "Roos…
+$ party        &lt;chr&gt; "Democratic", "Democratic", "Democratic", "Democratic", "…
+$ period       &lt;chr&gt; "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "…
+$ token        &lt;chr&gt; "today", "in", "pursuance", "of", "my", "constitutional",…
+$ token_id     &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17…</code></pre>
+</div>
+</div>
+<p>We now want to join the <code>bing</code> lexicon to the tokenized words to enable use to calculate the sentiment of each word in the exploratory analysis. The <code>bing</code> lexicon is a simple lexicon that classifies words as either positive or negative. There are other lexicons available in the <code>textdata</code> package that can be used for sentiment analysis, with varying levels of complexity. We’ll take the simple approach for this analysis.</p>
+<p>Let’s load the <code>bing</code> lexicon and take a quick look at the structure of the lexicon.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load the bing lexicon</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>bing_lexicon <span class="ot">&lt;-</span> <span class="fu">get_sentiments</span>(<span class="st">"bing"</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(bing_lexicon)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 6,786
+Columns: 2
+$ word      &lt;chr&gt; "2-faces", "abnormal", "abolish", "abominable", "abominably"…
+$ sentiment &lt;chr&gt; "negative", "negative", "negative", "negative", "negative", …</code></pre>
+</div>
+</div>
+<p>We see that there are almost 7k words with a sentiment classification of either positive or negative in the <code>bing</code> lexicon.</p>
+<p>Now to join the <code>sotu_tbl</code> and the <code>bing_lexicon</code> datasets. We will join the datasets on the <code>token</code> and <code>word</code> columns respectively. The <code>left_join()</code> function from the <code>dplyr</code> package will be used to join the datasets. Left joins take the dataset ‘on the left’ hand side of the join and add the columns from the dataset ‘on the right’ hand side of the join where there is a match on the join columns.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Join the sotu_tbl and bing_lexicon datasets</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="ot">&lt;-</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(bing_lexicon, <span class="at">by =</span> <span class="fu">join_by</span>(<span class="st">"token"</span> <span class="sc">==</span> <span class="st">"word"</span>))</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(sotu_tbl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 395,672
+Columns: 8
+$ address_id   &lt;int&gt; 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, …
+$ address_year &lt;dbl&gt; 1945, 1945, 1945, 1945, 1945, 1945, 1945, 1945, 1945, 194…
+$ president    &lt;chr&gt; "Roosevelt", "Roosevelt", "Roosevelt", "Roosevelt", "Roos…
+$ party        &lt;chr&gt; "Democratic", "Democratic", "Democratic", "Democratic", "…
+$ period       &lt;chr&gt; "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "…
+$ token        &lt;chr&gt; "today", "in", "pursuance", "of", "my", "constitutional",…
+$ token_id     &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17…
+$ sentiment    &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…</code></pre>
+</div>
+</div>
+<p>We now have a dataset that is suitable for sentiment analysis, at least in terms of the structure. Let’s get a view of the distribution of the sentiment classes.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Frequency table of the `sentiment` variable</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>sotu_tbl <span class="sc">|&gt;</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(sentiment) <span class="sc">|&gt;</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="tbl-sentiment-freq" class="anchored">
+<table class="table table-sm table-striped small">
+<caption>Table&nbsp;6: Frequency table of the <code>sentiment</code> variable</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">sentiment</th>
+<th style="text-align: right;">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">negative</td>
+<td style="text-align: right;">9595</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">positive</td>
+<td style="text-align: right;">18909</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">NA</td>
+<td style="text-align: right;">367168</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>Many, actually most, word tokens do not have a sentiment classification in the <code>bing</code> lexicon. This is not surprising because many words will not: (1) be in the lexicon and (2) have a sentiment classification by the very nature of the token (<em>e.g.</em> ‘the’, ‘and’, ‘of’, etc.). We will need to decide how to handle these words in the analysis. For now, we will keep them in the dataset.</p>
+</section>
+<section id="documentation" class="level3">
+<h3 class="anchored" data-anchor-id="documentation">Documentation</h3>
+<!--
+
+- Adding
+describe the resulting data
+
+-->
+<p>Currently, we have two datasets available. The first dataset similar as the original data, while the second dataset is specifically tailored for sentiment analysis. In the sentiment analysis dataset, sentiment annotations have been incorporated, and the text has been tokenized into words. Additionally, columns such as <code>first_name</code>, <code>address_type</code>, and <code>delivery</code> have been removed, while <code>token_id</code>, <code>period</code>, <code>address_id</code>, and <code>address_year</code> have been added. Both datasets are stored in the <code>../data/derived</code> directory.</p>
+<p>Finally, let’s write this dataset and create a data dictionary for the dataset. The data dictionary will be useful for future reference and for sharing the dataset with others.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Write the dataset</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(sotu_tbl, <span class="st">"../data/derived/sotu_sentiment.csv"</span>)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the data dictionary</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">create_data_dictionary</span>(</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  sotu_tbl,</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"../data/derived/sotu_sentiment_dd.csv"</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>File already exists at `file_path`. Use `force = TRUE` to overwrite.</code></pre>
+</div>
+</div>
+<p>The data is written to disk and the scaffold for the data dictionary is created. The structure of the <code>data/</code> directory looks like this:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># List the contents of the data directory</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dir_tree</span>(<span class="st">"../data"</span>, <span class="at">recurse =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>../data
+├── analysis
+├── derived
+│   ├── sotu_curated.csv
+│   ├── sotu_curated_dd.csv
+│   ├── sotu_sentiment.csv
+│   └── sotu_sentiment_dd.csv
+└── original</code></pre>
+</div>
+</div>
+<p>The data dictionary with the content I added to the scaffold appears in <a href="#tbl-sentiment-dd">Table&nbsp;7</a>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">read_csv</span>(<span class="st">"../data/derived/sotu_sentiment_dd.csv"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="tbl-sentiment-dd" class="anchored">
+<table class="table table-sm table-striped small">
+<caption>Table&nbsp;7: Data dictionary for the sentiment analysis dataset</caption>
+<colgroup>
+<col style="width: 13%">
+<col style="width: 16%">
+<col style="width: 14%">
+<col style="width: 56%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">variable</th>
+<th style="text-align: left;">name</th>
+<th style="text-align: left;">variable_type</th>
+<th style="text-align: left;">description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">address_id</td>
+<td style="text-align: left;">Address ID</td>
+<td style="text-align: left;">numeric</td>
+<td style="text-align: left;">Unique identifier for each address</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">address_year</td>
+<td style="text-align: left;">Address Year</td>
+<td style="text-align: left;">numeric</td>
+<td style="text-align: left;">Year of the address</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">president</td>
+<td style="text-align: left;">President</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">Name of the President</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">party</td>
+<td style="text-align: left;">Party</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">Political party of the President</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">period</td>
+<td style="text-align: left;">Period</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">Period of the address (‘pre’ or ‘post’ 9/11)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">token</td>
+<td style="text-align: left;">Token</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">Individual word tokens</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">token_id</td>
+<td style="text-align: left;">Token ID</td>
+<td style="text-align: left;">numeric</td>
+<td style="text-align: left;">Unique identifier for each token within an address</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sentiment</td>
+<td style="text-align: left;">Sentiment score</td>
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">Sentiment score of the token (‘positive’ or ‘negative’)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<hr>
+<p>To make sure that I do not share the data or datasets as part of the GitHub repository, I will add the dataset file to the <code>.gitignore</code> file. This will ensure that the data is not shared with others when the repository is shared. Note, since our analysis is reproducible, the data can be easily recreated by running the project.</p>
+<p>You usually will add the data files to the <code>.gitignore</code> file manually. However, I will show how you can do it programmatically. Note, you will only run this once, interactively as not to append the <code>.gitignore</code> file multiple times.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add the data files to the .gitignore file</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"../data/derived/sotu_sentiment.csv"</span>, <span class="at">file =</span> <span class="st">"../.gitignore"</span>, <span class="at">append =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
