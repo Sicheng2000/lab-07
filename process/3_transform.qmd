@@ -99,15 +99,15 @@ the idealized format for the transformed dataset in a tabular format
 #| echo: false
 
 # Load tibble package to create a tibble
-library(tibble) 
+# library(tibble) # note you do not need to load this package if you have already loaded it through `dplyr`
 
 # Set variables to this idealized tibble
 sentiment_tbl_ideal <- tibble(
-  address_id = integer(),  
-  address_year = integer(), 
-  period = character(), 
-  word = character(), 
-  sentiment = character()  
+  address_id = integer(),
+  address_year = integer(),
+  period = character(),
+  word = character(),
+  sentiment = character()
 )
 
 # Preview
@@ -123,12 +123,12 @@ Idealized format for the topic modeling.
 
 # Set variables to this idealized tibble
 topmod_tbl_ideal <- tibble(
-  address_id = integer(),  
-  address_year = integer(), 
+  address_id = integer(),
+  address_year = integer(),
   period = character(),
   type = character(),
-  frequency = integer(), 
-  tf_idf = numeric()  
+  frequency = integer(),
+  tf_idf = numeric()
 )
 
 # Preview
@@ -144,12 +144,12 @@ Idealized format for the word co-occurrence analysis.
 
 # Set variables to this idealized tibble
 cooccur_tbl_ideal <- tibble(
-  address_id = integer(),  
-  address_year = integer(), 
+  address_id = integer(),
+  address_year = integer(),
   period = character(),
   word_ref = character(),
-  word_co = character(), 
-  co_occurrence = integer()  
+  word_co = character(),
+  co_occurrence = integer()
 )
 
 # Preview
